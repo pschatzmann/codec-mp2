@@ -1,0 +1,30 @@
+#######################################
+# Syntax Coloring Map for TinyMP2
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+TinyMP2Decoder	KEYWORD1
+Decoder	KEYWORD1
+FrameHeader	KEYWORD1
+BitReader	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+decodeFrame	KEYWORD2
+parseHeader	KEYWORD2
+reset	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+kSamplesPerFrame	LITERAL1
+kMaxChannels	LITERAL1
+TINYMP2_SAMPLES_PER_FRAME	LITERAL1
+TINYMP2_MAX_CHANNELS	LITERAL1
+TINYMP2_MAX_FRAME_BYTES	LITERAL1

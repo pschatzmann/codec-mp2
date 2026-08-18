@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2026 Phil Schatzmann
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+------------------------------------------------------------------------------
+
+Provenance / third-party attribution
+
+The decoding algorithm and numeric tables in src/tinymp2_tables.h and
+src/tinymp2_decoder.h were ported from the MPEG-1 Layer II ("MP2") audio
+decoder in PL_MPEG:
+
+  PL_MPEG - MPEG1 Video decoder, MP2 Audio decoder, MPEG-PS demuxer
+  Copyright (c) Dominic Szablewski - https://phoboslab.org
+  SPDX-License-Identifier: MIT
+  https://github.com/phoboslab/pl_mpeg
+
+which in turn credits its MP2 audio decoder as based on kjmp2 by Martin J.
+Fiedler (http://keyj.emphy.de/kjmp2/), released under permissive terms by its
+author.
+
+TinyMP2 is an independent reimplementation for header-only, allocation-free
+microcontroller use: the file layout, the BitReader, the C++ class structure,
+and the streaming/Arduino-facing API are original to this project, but the
+core numerics (bit-allocation quantizer tables, the 512-tap synthesis window,
+the dequantization formula, and the polyphase synthesis filter) are the same
+as PL_MPEG's, and have been cross-validated bit-for-bit against it.
