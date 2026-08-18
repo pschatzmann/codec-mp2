@@ -104,6 +104,88 @@ leftover partial frame to the front before refilling. See
 `examples/DecodeToSerial` for the framing/resync loop itself (against an
 in-memory buffer); adapt the same loop to your I/O source.
 
+## Using TinyMP2 with arduino-audio-tools
+
+TinyMP2 is deliberately just a decoder: it turns bytes in, PCM out, with no
+opinion on where the bytes come from or where the PCM goes. If you want I2S
+output, Bluetooth, HTTP streaming, SD playback, resampling, mixing, or any
+of the other plumbing around that, pair it with
+[arduino-audio-tools](https://github.com/pschatzmann/arduino-audio-tools) --
+a much larger audio framework (same author) providing `AudioStream`
+abstractions, dozens of codecs, and I/O backends for most of what an
+Arduino audio project needs.
+
+audio-tools already ships a ready-made adapter,
+[`MP2Decoder`](https://github.com/pschatzmann/arduino-audio-tools/blob/main/src/AudioTools/AudioCodecs/CodecMP2.h)
+in `AudioTools/AudioCodecs/CodecMP2.h`, whose header explicitly says
+"Depends on https://github.com/pschatzmann/TinyMP2". It wraps a
+`TinyMP2Decoder` as an `AudioDecoder` (audio-tools' push-based decoder
+interface: compressed bytes in via `write()`, PCM out to a `Print`/
+`AudioStream` you set with `setOutput()`) -- internally it does exactly the
+buffer/resync loop described under [API](#api) above, so compressed data
+handed to it doesn't need to be frame-aligned.
+
+A minimal playback sketch looks like:
+
+```cpp
+#include "AudioTools.h"
+#include "AudioTools/AudioCodecs/CodecMP2.h"
+
+I2SStream i2s;
+MP2Decoder mp2;
+EncodedAudioStream decoder(&i2s, &mp2); // MP2 -> PCM -> i2s
+
+void setup() {
+    auto cfg = i2s.defaultConfig(TX_MODE);
+    cfg.channels = 2;
+    cfg.bits_per_sample = 16;
+    i2s.begin(cfg);
+    decoder.begin();
+}
+
+void loop() {
+    // feed compressed MP2 bytes from wherever they come from (SD, HTTP,
+    // Bluetooth, ...) -- decoder.write() re-derives the real sample
+    // rate/channel count from each frame header and reconfigures the
+    // output stream automatically when it changes.
+    decoder.write(mp2_bytes, mp2_bytes_len);
+}
+```
+
+(Check the current audio-tools API/examples for your board -- `I2SStream`
+config fields and constructor shapes have shifted between releases.)
+
+### Containers
+
+TinyMP2 only speaks a raw MP2 elementary stream -- back-to-back frames with
+their own sync headers, nothing wrapping them (see
+[Limitations](#limitations--out-of-scope)). Real-world MP2 audio is often
+wrapped in something else: an MPEG-1 Program Stream (`.mpg`), an MPEG-TS
+broadcast stream, or a media container like AVI. audio-tools provides
+several container/demuxer classes under `AudioTools/AudioCodecs/` to strip
+that wrapper before the bytes ever reach `MP2Decoder`:
+
+- **`DemuxerMPG`** (`ContainerMPG.h`) -- demuxes an ISO/IEC 11172-1
+  MPEG-1 Program Stream, splitting out the raw MPEG audio elementary stream
+  (any of Layer I/II/III) and forwarding it to whichever `AudioDecoder`
+  you've wired up via `setOutputAudio()` -- `MP2Decoder` included. This is
+  the counterpart to producing a `.mpg` file in the first place, and is the
+  one most directly relevant to MP2 content.
+- **`ContainerBinary`, `ContainerAVI`, `ContainerOgg`, `ContainerM4A`/
+  `ContainerMP4`** -- framing/demuxing for other container formats, for
+  when your compressed MP2 (or other codec) data arrives wrapped
+  differently.
+- **`MultiDecoder`** -- auto-detects the compressed format and dispatches
+  to the right decoder, useful if you don't know ahead of time whether
+  you're getting raw MP2, MP3, WAV, etc.
+- **`CodecChain`** -- chains a demuxer and a decoder (or several codecs)
+  together as a single pipeline stage.
+
+Note on licensing: TinyMP2 itself is MIT-licensed (see [LICENSE](LICENSE))
+and usable standalone under those terms regardless of the above.
+arduino-audio-tools as a whole (including `CodecMP2.h`) is GPLv3-licensed,
+so a project built on top of it inherits GPLv3 terms for that project.
+
 ## Installation
 
 For Arduino, download this library as a zip and use Library ->
@@ -155,7 +237,9 @@ and registers itself as a component automatically.
   their headers (returns 0).
 - **No container demuxing.** This decodes a raw MP2 elementary stream
   (back-to-back frames with sync headers), not `.wav`, `.ts`, or any other
-  container -- strip/demux those yourself first.
+  container -- strip/demux those yourself first, or see
+  [Containers](#containers) above for arduino-audio-tools classes that do
+  this for you.
 - **Float internally.** The synthesis filter uses `float` for simplicity
   and to keep the port easy to validate against the reference decoder;
   boards without an FPU (e.g. RP2040, classic SAMD21) will pay a
